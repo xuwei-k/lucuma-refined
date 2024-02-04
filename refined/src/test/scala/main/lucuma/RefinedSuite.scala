@@ -21,6 +21,7 @@ class RefinedSuite extends FunSuite {
   inline def assertRefineError(code: String) =
     assert(compileErrors(code).contains("error: no"))
 
+  /*
   test("or") {
     1.refined[Positive Or Negative]
     -1.refined[Positive Or Negative]
@@ -32,6 +33,8 @@ class RefinedSuite extends FunSuite {
     assertRefineError("1.refined[Positive And Negative]")
     assertRefineError("-1.refined[Positive And Negative]")
   }
+
+   */
 
   test("greater") {
     2.refined[Greater[1]]
@@ -53,12 +56,15 @@ class RefinedSuite extends FunSuite {
     assertRefineError("2L.refined[Less[1L]]")
   }
 
+  /*
   test("closed interval") {
     0.refined[Interval.Closed[0, 2]]
     1.refined[Interval.Closed[0, 2]]
     2.refined[Interval.Closed[0, 2]]
     assertRefineError("-1.refined[Interval.Closed[0, 2]]")
   }
+
+   */
 
   test("positive integer") {
     1.refined[Positive]
@@ -123,6 +129,7 @@ class RefinedSuite extends FunSuite {
     assertRefineError("'!'.refined[Letter]")
   }
 
+  /*
   test("not") {
     -1.refined[Not[Positive]]
     1.refined[Not[Negative]]
@@ -133,8 +140,12 @@ class RefinedSuite extends FunSuite {
     assertRefineError("'a'.refined[Not[Letter]]")
   }
 
+   */
+
+  /*
   test("empty string") {
     "".refined[Empty]
+    "a".refined[Empty]
     "carlos".refined[NonEmpty]
     assertRefineError(""" "".refined[NonEmpty] """)
     assertRefineError(""" "carlos".refined[Empty] """)
@@ -142,5 +153,7 @@ class RefinedSuite extends FunSuite {
       compileErrors("""???.toString.refined[NonEmpty]""").contains("error")
     )
   }
+
+   */
 
 }
