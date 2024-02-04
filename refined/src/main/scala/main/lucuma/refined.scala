@@ -20,6 +20,37 @@ import scala.quoted.FromExpr
 import scala.quoted.Type
 import scala.quoted.Quotes
 
+given FromExpr[Boolean] with {
+  override def unapply(expr: Expr[Boolean])(using q: Quotes): Option[Boolean] = {
+    import q.reflect.*
+
+    def rec(tree: Term): Option[Boolean] =
+      tree match
+        case Block(stats, e)         => if stats.isEmpty then rec(e) else None
+        case Inlined(_, bindings, e) =>
+          if bindings.isEmpty then rec(e) else None
+        case Typed(e, _)             => rec(e)
+        case Apply(Select(left, "||"), List(right))
+            if left.tpe <:< TypeRepr.of[Boolean] && right.tpe <:< TypeRepr
+              .of[Boolean] => // OR
+          rec(left) match
+            case Some(value) => if value then Some(true) else rec(right)
+            case None        => rec(right).filter(x => x)
+        case Apply(Select(left, "&&"), List(right))
+            if left.tpe <:< TypeRepr.of[Boolean] && right.tpe <:< TypeRepr
+              .of[Boolean] => // AND
+          rec(left) match
+            case Some(value) => if value then rec(right) else Some(false)
+            case None        => rec(right).filterNot(x => x)
+        case _                       =>
+          tree.tpe.widenTermRefByName match
+            case ConstantType(c) => Some(c.value.asInstanceOf[Boolean])
+            case _               => None
+
+    rec(expr.asTerm)
+  }
+}
+
 inline def refineMV[T, P](inline t: T)(using inline p: Predicate[T, P]): Refined[T, P] = {
   assertCondition(t, p.isValid(t))
   Refined.unsafeApply[T, P](t)
@@ -63,11 +94,47 @@ object Predicate {
   ): Predicate[T, Or[A, B]] with
     inline def isValid(inline t: T): Boolean = predA.isValid(t) || predB.isValid(t)
 
-  inline given [T, A, B, PA <: Predicate[T, A], PB <: Predicate[T, B]](using
-    predA: PA,
-    predB: PB
-  ): Predicate[T, And[A, B]] with
-    inline def isValid(inline t: T): Boolean = predA.isValid(t) && predB.isValid(t)
+  inline given [T, A, B, PA <: Predicate[T, A], PB <: Predicate[T, B]]
+    : PredicateAndInstance[T, A, B, PA, PB] = new PredicateAndInstance[T, A, B, PA, PB]
+
+  class PredicateAndInstance[T, A, B, PA <: Predicate[T, A], PB <: Predicate[T, B]]
+      extends Predicate[T, And[A, B]] {
+    inline def isValid(inline t: T): Boolean =
+      AndImpl.andImpl[T, A, B](t)
+
+  }
+
+  object AndImpl {
+    transparent inline def andImpl[T, A, B](inline t: T): Boolean =
+      ${ AndImpl.intersectionCondImpl[T, A, B]('t) }
+
+    def intersectionCondImpl[A: Type, X: Type, Y: Type](
+      value: Expr[A]
+    )(using q: Quotes): Expr[Boolean] = {
+      import q.reflect.*
+      val aTpe = TypeRepr.of[A]
+
+      val constraintTpe = TypeRepr.of[Predicate]
+
+      def rec(tpe: TypeRepr): Expr[Boolean] =
+        tpe.asType match
+          case '[And[left, right]] =>
+            val leftResult  = rec(TypeRepr.of[left])
+            val rightResult = rec(TypeRepr.of[right])
+            '{ $leftResult && $rightResult }
+          case t                   =>
+            val implTpe = constraintTpe.appliedTo(List(aTpe, tpe))
+            Implicits.search(implTpe) match
+              case iss: ImplicitSearchSuccess =>
+                val implTerm = iss.tree
+                Apply(Select.unique(implTerm, "isValid"), List(value.asTerm)).asExprOf[Boolean]
+
+              case isf: ImplicitSearchFailure =>
+                report.errorAndAbort("not found implicit")
+
+      rec(TypeRepr.of[X And Y])
+    }
+  }
 
   inline given Predicate[Int, Positive] with
     inline def isValid(inline t: Int): Boolean = t > 0
