@@ -100,40 +100,8 @@ object Predicate {
   class PredicateAndInstance[T, A, B, PA <: Predicate[T, A], PB <: Predicate[T, B]]
       extends Predicate[T, And[A, B]] {
     inline def isValid(inline t: T): Boolean =
-      AndImpl.andImpl[T, A, B](t)
+      RefinedMacros.andImpl[T, A, B](t)
 
-  }
-
-  object AndImpl {
-    transparent inline def andImpl[T, A, B](inline t: T): Boolean =
-      ${ AndImpl.intersectionCondImpl[T, A, B]('t) }
-
-    def intersectionCondImpl[A: Type, X: Type, Y: Type](
-      value: Expr[A]
-    )(using q: Quotes): Expr[Boolean] = {
-      import q.reflect.*
-      val aTpe = TypeRepr.of[A]
-
-      val constraintTpe = TypeRepr.of[Predicate]
-
-      def rec(tpe: TypeRepr): Expr[Boolean] =
-        tpe.asType match
-          case '[And[left, right]] =>
-            val leftResult  = rec(TypeRepr.of[left])
-            val rightResult = rec(TypeRepr.of[right])
-            '{ $leftResult && $rightResult }
-          case t                   =>
-            val implTpe = constraintTpe.appliedTo(List(aTpe, tpe))
-            Implicits.search(implTpe) match
-              case iss: ImplicitSearchSuccess =>
-                val implTerm = iss.tree
-                Apply(Select.unique(implTerm, "isValid"), List(value.asTerm)).asExprOf[Boolean]
-
-              case isf: ImplicitSearchFailure =>
-                report.errorAndAbort("not found implicit")
-
-      rec(TypeRepr.of[X And Y])
-    }
   }
 
   inline given Predicate[Int, Positive] with
@@ -201,11 +169,78 @@ object Predicate {
     inline def isValid(inline t: Char): Boolean =
       ('a' <= t && t <= 'z') || ('A' <= t && t <= 'Z')
 
-  inline given [T, A, P <: Predicate[T, A]](using p: P): Predicate[T, Not[A]] with
-    inline def isValid(inline t: T): Boolean = !p.isValid(t)
+  inline given [T, A, P <: Predicate[T, A]](using p: P): PredicateNotInstance[T, A, P] =
+    new PredicateNotInstance[T, A, P]
+
+  final class PredicateNotInstance[T, A, P <: Predicate[T, A]] extends Predicate[T, Not[A]] {
+    inline def isValid(inline t: T): Boolean =
+      RefinedMacros.notImpl[T, A](t)
+  }
 
   inline given Predicate[String, Empty] with
     inline def isValid(inline s: String): Boolean =
       s == ""
 
+}
+
+object RefinedMacros {
+  transparent inline def andImpl[T, A, B](inline t: T): Boolean =
+    ${ RefinedMacros.intersectionCondImpl[T, A, B]('t) }
+
+  transparent inline def notImpl[A, X](inline t: A): Boolean =
+    ${ RefinedMacros.notImplImpl[A, X]('t) }
+
+  def notImplImpl[A: Type, X: Type](
+    value: Expr[A]
+  )(using q: Quotes): Expr[Boolean] = {
+    import q.reflect.*
+    val aTpe = TypeRepr.of[A]
+
+    val constraintTpe = TypeRepr.of[Predicate]
+
+    def rec(tpe: TypeRepr): Expr[Boolean] =
+      tpe.asType match
+        case '[Not[x]] =>
+          println(TypeRepr.of[x].show)
+          val xx = rec(TypeRepr.of[x])
+          '{ ! $xx }
+        case t         =>
+          val implTpe = constraintTpe.appliedTo(List(aTpe, tpe))
+          Implicits.search(implTpe) match
+            case iss: ImplicitSearchSuccess =>
+              val implTerm = iss.tree
+              Apply(Select.unique(implTerm, "isValid"), List(value.asTerm)).asExprOf[Boolean]
+
+            case isf: ImplicitSearchFailure =>
+              report.errorAndAbort(s"not found implicit ${tpe.show} ${isf.explanation}")
+
+    rec(TypeRepr.of[Not[X]])
+  }
+
+  def intersectionCondImpl[A: Type, X: Type, Y: Type](
+    value: Expr[A]
+  )(using q: Quotes): Expr[Boolean] = {
+    import q.reflect.*
+    val aTpe = TypeRepr.of[A]
+
+    val constraintTpe = TypeRepr.of[Predicate]
+
+    def rec(tpe: TypeRepr): Expr[Boolean] =
+      tpe.asType match
+        case '[And[left, right]] =>
+          val leftResult  = rec(TypeRepr.of[left])
+          val rightResult = rec(TypeRepr.of[right])
+          '{ $leftResult && $rightResult }
+        case t                   =>
+          val implTpe = constraintTpe.appliedTo(List(aTpe, tpe))
+          Implicits.search(implTpe) match
+            case iss: ImplicitSearchSuccess =>
+              val implTerm = iss.tree
+              Apply(Select.unique(implTerm, "isValid"), List(value.asTerm)).asExprOf[Boolean]
+
+            case isf: ImplicitSearchFailure =>
+              report.errorAndAbort("not found implicit")
+
+    rec(TypeRepr.of[X And Y])
+  }
 }
