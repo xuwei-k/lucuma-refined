@@ -100,7 +100,7 @@ object Predicate {
   class PredicateAndInstance[T, A, B, PA <: Predicate[T, A], PB <: Predicate[T, B]]
       extends Predicate[T, And[A, B]] {
     inline def isValid(inline t: T): Boolean =
-      RefinedMacros.andImpl[T, A, B](t)
+      ${ RefinedMacros.andImpl[T, A, B]('t) }
 
   }
 
@@ -174,7 +174,7 @@ object Predicate {
 
   final class PredicateNotInstance[T, A, P <: Predicate[T, A]] extends Predicate[T, Not[A]] {
     inline def isValid(inline t: T): Boolean =
-      RefinedMacros.notImpl[T, A](t)
+      ${ RefinedMacros.notImpl[T, A]('t) }
   }
 
   inline given Predicate[String, Empty] with
@@ -184,13 +184,8 @@ object Predicate {
 }
 
 object RefinedMacros {
-  inline def andImpl[T, A, B](inline t: T): Boolean =
-    ${ RefinedMacros.intersectionCondImpl[T, A, B]('t) }
 
-  inline def notImpl[A, X](inline t: A): Boolean =
-    ${ RefinedMacros.notImplImpl[A, X]('t) }
-
-  def notImplImpl[A: Type, X: Type](
+  def notImpl[A: Type, X: Type](
     value: Expr[A]
   )(using q: Quotes): Expr[Boolean] = {
     import q.reflect.*
@@ -217,7 +212,7 @@ object RefinedMacros {
     rec(TypeRepr.of[Not[X]])
   }
 
-  def intersectionCondImpl[A: Type, X: Type, Y: Type](
+  def andImpl[A: Type, X: Type, Y: Type](
     value: Expr[A]
   )(using q: Quotes): Expr[Boolean] = {
     import q.reflect.*
