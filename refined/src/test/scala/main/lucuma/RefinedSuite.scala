@@ -58,15 +58,12 @@ class RefinedSuite extends FunSuite {
     assertRefineError("2L.refined[Less[1L]]")
   }
 
-  /*
   test("closed interval") {
     0.refined[Interval.Closed[0, 2]]
     1.refined[Interval.Closed[0, 2]]
     2.refined[Interval.Closed[0, 2]]
     assertRefineError("-1.refined[Interval.Closed[0, 2]]")
   }
-
-   */
 
   test("positive integer") {
     1.refined[Positive]
@@ -131,7 +128,6 @@ class RefinedSuite extends FunSuite {
     assertRefineError("'!'.refined[Letter]")
   }
 
-  /*
   test("not") {
     -1.refined[Not[Positive]]
     1.refined[Not[Negative]]
@@ -141,8 +137,6 @@ class RefinedSuite extends FunSuite {
     assertRefineError("1.refined[Not[Positive]]")
     assertRefineError("'a'.refined[Not[Letter]]")
   }
-
-   */
 
   /*
   test("empty string") {
