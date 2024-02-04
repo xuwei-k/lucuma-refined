@@ -184,10 +184,10 @@ object Predicate {
 }
 
 object RefinedMacros {
-  transparent inline def andImpl[T, A, B](inline t: T): Boolean =
+  inline def andImpl[T, A, B](inline t: T): Boolean =
     ${ RefinedMacros.intersectionCondImpl[T, A, B]('t) }
 
-  transparent inline def notImpl[A, X](inline t: A): Boolean =
+  inline def notImpl[A, X](inline t: A): Boolean =
     ${ RefinedMacros.notImplImpl[A, X]('t) }
 
   def notImplImpl[A: Type, X: Type](
