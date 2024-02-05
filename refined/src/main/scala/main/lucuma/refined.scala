@@ -21,8 +21,7 @@ import scala.quoted.Type
 import scala.quoted.Quotes
 
 inline def refineMV[T, P](inline t: T)(using inline p: Predicate[T, P]): Refined[T, P] =
-  inline if (p.isValid(t)) Refined.unsafeApply[T, P](t)
-  else no
+  inline if (p.isValid(t)) Refined.unsafeApply(t) else no
 
 inline def no = scala.compiletime.error("no")
 
