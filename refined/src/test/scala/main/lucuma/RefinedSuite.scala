@@ -133,10 +133,8 @@ class RefinedSuite extends FunSuite {
     assertRefineError("'a'.refined[Not[Letter]]")
   }
 
-  /*
   test("empty string") {
     "".refined[Empty]
-    "a".refined[Empty]
     "carlos".refined[NonEmpty]
     assertRefineError(""" "".refined[NonEmpty] """)
     assertRefineError(""" "carlos".refined[Empty] """)
@@ -144,7 +142,5 @@ class RefinedSuite extends FunSuite {
       compileErrors("""???.toString.refined[NonEmpty]""").contains("error")
     )
   }
-
-   */
 
 }
