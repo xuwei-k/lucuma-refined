@@ -20,30 +20,9 @@ import scala.quoted.FromExpr
 import scala.quoted.Type
 import scala.quoted.Quotes
 
-inline def refineMV[T, P](inline t: T)(using inline p: Predicate[T, P]): Refined[T, P] = {
-  assertCondition(t, p.isValid(t))
-  Refined.unsafeApply[T, P](t)
-}
-
-// inline if (p.isValid(t)) Refined.unsafeApply(t) else no
-
-inline def assertCondition[A](inline input: A, inline cond: Boolean): Unit =
-  ${ assertConditionImpl[A]('input, 'cond) }
-
-private def assertConditionImpl[A: Type](input: Expr[A], cond: Expr[Boolean])(using
-  q: Quotes
-): Expr[Unit] = {
-  import q.reflect.*
-  if (
-    cond.value.getOrElse {
-      report.errorAndAbort("not constant !?")
-    } == false
-  ) {
-    // report.error("does not satisfy predicate")
-    report.error("no")
-  }
-  '{ () }
-}
+inline def refineMV[T, P](inline t: T)(using inline p: Predicate[T, P]): Refined[T, P] =
+  inline if (p.isValid(t)) Refined.unsafeApply[T, P](t)
+  else no
 
 inline def no = scala.compiletime.error("no")
 
