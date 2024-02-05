@@ -88,11 +88,11 @@ trait Predicate[T, P] {
 
 object Predicate {
 
-  inline given [T, A, B, PA <: Predicate[T, A], PB <: Predicate[T, B]](using
-    predA: PA,
-    predB: PB
-  ): Predicate[T, Or[A, B]] with
-    inline def isValid(inline t: T): Boolean = predA.isValid(t) || predB.isValid(t)
+  inline given [T, A, B, PA <: Predicate[T, A], PB <: Predicate[T, B]]: Predicate[T, Or[A, B]]
+  with {
+    inline def isValid(inline t: T): Boolean =
+      ${ RefinedMacros.orImpl[T, A, B]('t) }
+  }
 
   inline given [T, A, B, PA <: Predicate[T, A], PB <: Predicate[T, B]]: Predicate[T, And[A, B]]
   with {
@@ -189,7 +189,6 @@ object RefinedMacros {
     def rec(tpe: TypeRepr): Expr[Boolean] =
       tpe.asType match
         case '[Not[x]] =>
-          println(TypeRepr.of[x].show)
           val xx = rec(TypeRepr.of[x])
           '{ ! $xx }
         case t         =>
@@ -230,5 +229,32 @@ object RefinedMacros {
               report.errorAndAbort("not found implicit")
 
     rec(TypeRepr.of[X And Y])
+  }
+
+  def orImpl[A: Type, X: Type, Y: Type](
+    value: Expr[A]
+  )(using q: Quotes): Expr[Boolean] = {
+    import q.reflect.*
+    val aTpe = TypeRepr.of[A]
+
+    val constraintTpe = TypeRepr.of[Predicate]
+
+    def rec(tpe: TypeRepr): Expr[Boolean] =
+      tpe.asType match
+        case '[left Or right] =>
+          val leftResult  = rec(TypeRepr.of[left])
+          val rightResult = rec(TypeRepr.of[right])
+          '{ $leftResult || $rightResult }
+        case t                =>
+          val implTpe = constraintTpe.appliedTo(List(aTpe, tpe))
+          Implicits.search(implTpe) match
+            case iss: ImplicitSearchSuccess =>
+              val implTerm = iss.tree
+              Apply(Select.unique(implTerm, "isValid"), List(value.asTerm)).asExprOf[Boolean]
+
+            case isf: ImplicitSearchFailure =>
+              report.errorAndAbort("not found implicit")
+
+    rec(TypeRepr.of[X Or Y])
   }
 }
