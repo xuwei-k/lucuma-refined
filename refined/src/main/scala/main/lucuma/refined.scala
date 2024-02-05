@@ -163,7 +163,7 @@ object RefinedMacros {
           Implicits.search(implTpe) match
             case iss: ImplicitSearchSuccess =>
               val implTerm = iss.tree
-              Apply(Select.unique(implTerm, "isValid"), List(value.asTerm)).asExprOf[Boolean]
+              Apply(Select.unique(implTerm, "isValid"), value.asTerm :: Nil).asExprOf[Boolean]
 
             case isf: ImplicitSearchFailure =>
               report.errorAndAbort(s"not found implicit ${tpe.show} ${isf.explanation}")
@@ -190,7 +190,7 @@ object RefinedMacros {
           Implicits.search(implTpe) match
             case iss: ImplicitSearchSuccess =>
               val implTerm = iss.tree
-              Apply(Select.unique(implTerm, "isValid"), List(value.asTerm)).asExprOf[Boolean]
+              Apply(Select.unique(implTerm, "isValid"), value.asTerm :: Nil).asExprOf[Boolean]
 
             case isf: ImplicitSearchFailure =>
               report.errorAndAbort("not found implicit")
@@ -217,7 +217,7 @@ object RefinedMacros {
           Implicits.search(implTpe) match
             case iss: ImplicitSearchSuccess =>
               val implTerm = iss.tree
-              Apply(Select.unique(implTerm, "isValid"), List(value.asTerm)).asExprOf[Boolean]
+              Apply(Select.unique(implTerm, "isValid"), value.asTerm :: Nil).asExprOf[Boolean]
 
             case isf: ImplicitSearchFailure =>
               report.errorAndAbort("not found implicit")
