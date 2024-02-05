@@ -57,14 +57,12 @@ trait Predicate[T, P] {
 
 object Predicate {
 
-  inline given [T, A, B, PA <: Predicate[T, A], PB <: Predicate[T, B]]: Predicate[T, Or[A, B]]
-  with {
+  inline given [T, A, B]: Predicate[T, A Or B] with {
     inline def isValid(inline t: T): Boolean =
       ${ RefinedMacros.orImpl[T, A, B]('t) }
   }
 
-  inline given [T, A, B, PA <: Predicate[T, A], PB <: Predicate[T, B]]: Predicate[T, And[A, B]]
-  with {
+  inline given [T, A, B]: Predicate[T, And[A, B]] with {
     inline def isValid(inline t: T): Boolean =
       ${ RefinedMacros.andImpl[T, A, B]('t) }
   }
@@ -134,7 +132,7 @@ object Predicate {
     inline def isValid(inline t: Char): Boolean =
       ('a' <= t && t <= 'z') || ('A' <= t && t <= 'Z')
 
-  inline given [T, A, P <: Predicate[T, A]]: Predicate[T, Not[A]] with {
+  inline given [T, A]: Predicate[T, Not[A]] with {
     inline def isValid(inline t: T): Boolean =
       ${ RefinedMacros.notImpl[T, A]('t) }
   }
