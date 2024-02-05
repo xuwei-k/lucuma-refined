@@ -21,22 +21,17 @@ class RefinedSuite extends FunSuite {
   inline def assertRefineError(code: String) =
     assert(compileErrors(code).contains("error: no"))
 
-  /*
   test("or") {
     1.refined[Positive Or Negative]
     -1.refined[Positive Or Negative]
     assertRefineError("0.refined[Positive Or Negative]")
   }
-   */
 
   test("and") {
     0.refined[Not[Positive] And Not[Negative]]
     assertRefineError("1.refined[Positive And Negative]")
     assertRefineError("-1.refined[Positive And Negative]")
   }
-  /*
-
-   */
 
   test("greater") {
     2.refined[Greater[1]]
