@@ -94,14 +94,10 @@ object Predicate {
   ): Predicate[T, Or[A, B]] with
     inline def isValid(inline t: T): Boolean = predA.isValid(t) || predB.isValid(t)
 
-  inline given [T, A, B, PA <: Predicate[T, A], PB <: Predicate[T, B]]
-    : PredicateAndInstance[T, A, B, PA, PB] = new PredicateAndInstance[T, A, B, PA, PB]
-
-  class PredicateAndInstance[T, A, B, PA <: Predicate[T, A], PB <: Predicate[T, B]]
-      extends Predicate[T, And[A, B]] {
+  inline given [T, A, B, PA <: Predicate[T, A], PB <: Predicate[T, B]]: Predicate[T, And[A, B]]
+  with {
     inline def isValid(inline t: T): Boolean =
       ${ RefinedMacros.andImpl[T, A, B]('t) }
-
   }
 
   inline given Predicate[Int, Positive] with
@@ -169,10 +165,7 @@ object Predicate {
     inline def isValid(inline t: Char): Boolean =
       ('a' <= t && t <= 'z') || ('A' <= t && t <= 'Z')
 
-  inline given [T, A, P <: Predicate[T, A]](using p: P): PredicateNotInstance[T, A, P] =
-    new PredicateNotInstance[T, A, P]
-
-  final class PredicateNotInstance[T, A, P <: Predicate[T, A]] extends Predicate[T, Not[A]] {
+  inline given [T, A, P <: Predicate[T, A]]: Predicate[T, Not[A]] with {
     inline def isValid(inline t: T): Boolean =
       ${ RefinedMacros.notImpl[T, A]('t) }
   }
