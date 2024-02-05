@@ -20,37 +20,6 @@ import scala.quoted.FromExpr
 import scala.quoted.Type
 import scala.quoted.Quotes
 
-given FromExpr[Boolean] with {
-  override def unapply(expr: Expr[Boolean])(using q: Quotes): Option[Boolean] = {
-    import q.reflect.*
-
-    def rec(tree: Term): Option[Boolean] =
-      tree match
-        case Block(stats, e)         => if stats.isEmpty then rec(e) else None
-        case Inlined(_, bindings, e) =>
-          if bindings.isEmpty then rec(e) else None
-        case Typed(e, _)             => rec(e)
-        case Apply(Select(left, "||"), List(right))
-            if left.tpe <:< TypeRepr.of[Boolean] && right.tpe <:< TypeRepr
-              .of[Boolean] => // OR
-          rec(left) match
-            case Some(value) => if value then Some(true) else rec(right)
-            case None        => rec(right).filter(x => x)
-        case Apply(Select(left, "&&"), List(right))
-            if left.tpe <:< TypeRepr.of[Boolean] && right.tpe <:< TypeRepr
-              .of[Boolean] => // AND
-          rec(left) match
-            case Some(value) => if value then rec(right) else Some(false)
-            case None        => rec(right).filterNot(x => x)
-        case _                       =>
-          tree.tpe.widenTermRefByName match
-            case ConstantType(c) => Some(c.value.asInstanceOf[Boolean])
-            case _               => None
-
-    rec(expr.asTerm)
-  }
-}
-
 inline def refineMV[T, P](inline t: T)(using inline p: Predicate[T, P]): Refined[T, P] = {
   assertCondition(t, p.isValid(t))
   Refined.unsafeApply[T, P](t)
